@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Fast_C__Pizza_Co_Back_End.Models
 {
@@ -14,6 +15,7 @@ namespace Fast_C__Pizza_Co_Back_End.Models
         [Required]
         public int Quantity { get; set; }
         public int PizzaOrderId { get; set; }
-        public PizzaOrder PizzaOrder { get; set; }
+        [JsonIgnore]
+        public PizzaOrder? PizzaOrder { get; set; }
     }
 }

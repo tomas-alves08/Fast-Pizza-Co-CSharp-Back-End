@@ -3,6 +3,9 @@ using Fast_C__Pizza_Co_Back_End.Models;
 using Fast_C__Pizza_Co_Back_End.Models.DTO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Text.Json.Serialization;
 
 namespace Fast_C__Pizza_Co_Back_End.Controllers
 {
@@ -20,7 +23,9 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<PizzaOrderDTO>> GetPizzaOrder() 
         {
-            return Ok(_db.PizzaOrders.ToList());
+            return Ok(_db.PizzaOrders
+                .Include(order => order.PizzaArr)
+                .ToList());
         }
 
         [HttpGet("id:int", Name = "GetTodo")]
@@ -31,7 +36,9 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 return BadRequest();
             }
 
-            var pizzaOrder = _db.PizzaOrders.FirstOrDefault(order=> order.Id == id);
+            var pizzaOrder = _db.PizzaOrders
+                                    .Include(pizza => pizza.PizzaArr)
+                                    .FirstOrDefault(order=> order.Id == id);
 
             if(pizzaOrder == null)
             {
@@ -42,10 +49,13 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
         }
 
         [HttpPost]
-        public ActionResult<PizzaOrderCreateDTO> CreatePizzaOrder([FromBody] PizzaOrderCreateDTO orderDTO)
+        public async Task<ActionResult<PizzaOrderCreateDTO>> CreatePizzaOrder([FromBody] PizzaOrderCreateDTO orderDTO)
         {
-            Console.WriteLine(orderDTO);
-            if(orderDTO == null)
+            Debug.WriteLine(orderDTO);
+            try
+            {
+
+            if (orderDTO == null)
             {
                 return BadRequest(orderDTO);
             }
@@ -55,12 +65,23 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 PizzaArr = orderDTO.PizzaArr,
                 TotalCost = orderDTO.TotalCost,
                 DeliveryTime = orderDTO.DeliveryTime,
+                CreateDate = DateTime.Now,
+                UpdateDate = DateTime.Now
             };
 
-            _db.PizzaOrders.Add(model);
-            _db.SaveChanges();
+                var x = JsonConvert.SerializeObject(model);
 
-            return CreatedAtRoute("CreatePizzaOrder", orderDTO);
+            _db.PizzaOrders.Add(model);
+            await _db.SaveChangesAsync();
+
+            return Ok(orderDTO);
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                           "I'm sorry. Have a problem to save your information.");
+            }
         }
 
         [HttpDelete("id:int")]
@@ -92,15 +113,31 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 return BadRequest();
             }
 
-            PizzaOrder model = new()
-            {
-                Id = orderDTO.Id,
-                PizzaArr = orderDTO.PizzaArr,
-                TotalCost = orderDTO.TotalCost,
-                DeliveryTime = orderDTO.DeliveryTime,
-            };
+            var existingPizzaOrder = _db.PizzaOrders.FirstOrDefault(pizza => pizza.Id == id);
 
-            _db.PizzaOrders.Update(model);
+            if(existingPizzaOrder == null)
+            {
+                return NotFound();
+            }
+
+            existingPizzaOrder.TotalCost = orderDTO.TotalCost;
+            existingPizzaOrder.DeliveryTime = orderDTO.DeliveryTime;
+            existingPizzaOrder.UpdateDate = DateTime.Now;
+
+            var existingPizzaObjs = _db.PizzaObj.Where(pizza => pizza.PizzaOrderId == id).ToList();
+
+            foreach(var updatedPizzaObj in orderDTO.PizzaArr)
+            {
+                var existingPizzaObj = existingPizzaObjs.FirstOrDefault(pizza => pizza.Id == updatedPizzaObj.Id);
+
+                if(existingPizzaObj != null)
+                {
+                    existingPizzaObj.Name = updatedPizzaObj.Name;
+                    existingPizzaObj.Price = updatedPizzaObj.Price;
+                    existingPizzaObj.Quantity = updatedPizzaObj.Quantity;
+                }
+            }
+
             _db.SaveChanges();
 
             return NoContent();

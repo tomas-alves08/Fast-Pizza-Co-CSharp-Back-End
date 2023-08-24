@@ -11,6 +11,7 @@ namespace Fast_C__Pizza_Co_Back_End.Data
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<PizzaOrder> PizzaOrders { get; set;}
+        public DbSet<PizzaObj> PizzaObj { get; set;}
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<PizzaOrder>().HasData(

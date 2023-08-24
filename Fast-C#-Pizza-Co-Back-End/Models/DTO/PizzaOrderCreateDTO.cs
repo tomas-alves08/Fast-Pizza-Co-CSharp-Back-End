@@ -5,7 +5,7 @@ namespace Fast_C__Pizza_Co_Back_End.Models.DTO
     public class PizzaOrderCreateDTO
     {
         [Required]
-        public List<PizzaObj> PizzaArr { get; set; }
+        public List<PizzaObj>? PizzaArr { get; set; }
         [Required]
         public int TotalCost { get; set; }
         [Required]
