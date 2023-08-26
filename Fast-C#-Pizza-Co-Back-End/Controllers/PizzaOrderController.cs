@@ -3,13 +3,14 @@ using Fast_C__Pizza_Co_Back_End.Models;
 using Fast_C__Pizza_Co_Back_End.Models.DTO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace Fast_C__Pizza_Co_Back_End.Controllers
 {
-    [Route("api/PizzaOrderApi")]
+    [Route("api/PizzaOrder")]
     [ApiController]
     public class PizzaOrderController : ControllerBase
     {
@@ -21,14 +22,15 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<PizzaOrderDTO>> GetPizzaOrder() 
+        public ActionResult<IEnumerable<PizzaOrderDTO>> GetPizzaOrders() 
         {
             return Ok(_db.PizzaOrders
                 .Include(order => order.PizzaArr)
+                .OrderBy(order => order.DeliveryTime)
                 .ToList());
         }
 
-        [HttpGet("id:int", Name = "GetTodo")]
+        [HttpGet("id:int", Name = "GetPizzaOrder")]
         public ActionResult<PizzaOrderDTO> GetPizzaOrder(int id) 
         {
             if(id == 0)
@@ -51,6 +53,8 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
         [HttpPost]
         public async Task<ActionResult<PizzaOrderCreateDTO>> CreatePizzaOrder([FromBody] PizzaOrderCreateDTO orderDTO)
         {
+         
+
             Debug.WriteLine(orderDTO);
             try
             {
@@ -60,9 +64,19 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 return BadRequest(orderDTO);
             }
 
+                List<PizzaObj> pizzas = new List<PizzaObj>();
+                
+                foreach(PizzaObj pizza in orderDTO.PizzaArr)
+                {
+                    if(pizza.Quantity != 0)
+                    {
+                        pizzas.Add(pizza);
+                    }
+                }
+
             PizzaOrder model = new()
             {
-                PizzaArr = orderDTO.PizzaArr,
+                PizzaArr = pizzas,
                 TotalCost = orderDTO.TotalCost,
                 DeliveryTime = orderDTO.DeliveryTime,
                 CreateDate = DateTime.Now,
