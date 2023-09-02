@@ -64,15 +64,15 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 return BadRequest(orderDTO);
             }
 
-                List<PizzaObj> pizzas = new List<PizzaObj>();
+            List<PizzaObj> pizzas = new List<PizzaObj>();
                 
-                foreach(PizzaObj pizza in orderDTO.PizzaArr)
+            foreach(PizzaObj pizza in orderDTO.PizzaArr)
+            {
+                if(pizza.Quantity != 0)
                 {
-                    if(pizza.Quantity != 0)
-                    {
-                        pizzas.Add(pizza);
-                    }
+                   pizzas.Add(pizza);
                 }
+            }
 
             PizzaOrder model = new()
             {
@@ -140,16 +140,36 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
 
             var existingPizzaObjs = _db.PizzaObj.Where(pizza => pizza.PizzaOrderId == id).ToList();
 
-            foreach(var updatedPizzaObj in orderDTO.PizzaArr)
+            List<PizzaObj> pizzas = new List<PizzaObj>();
+
+            foreach (var updatedPizzaObj in orderDTO.PizzaArr)
             {
                 var existingPizzaObj = existingPizzaObjs.FirstOrDefault(pizza => pizza.Id == updatedPizzaObj.Id);
 
-                if(existingPizzaObj != null)
+                /*if(updatedPizzaObj.Quantity == 0 || updatedPizzaObj.Quantity < 0)
                 {
-                    existingPizzaObj.Name = updatedPizzaObj.Name;
-                    existingPizzaObj.Price = updatedPizzaObj.Price;
-                    existingPizzaObj.Quantity = updatedPizzaObj.Quantity;
-                }
+                    _db.PizzaObj.Remove(updatedPizzaObj);
+                }*/
+
+                    if(existingPizzaObj != null)
+                    {
+                        existingPizzaObj.Name = updatedPizzaObj.Name;
+                        existingPizzaObj.Price = updatedPizzaObj.Price;
+                        existingPizzaObj.Quantity = updatedPizzaObj.Quantity;
+                    }
+
+                    if(updatedPizzaObj.Quantity > 0 && updatedPizzaObj.Id == -1)
+                    {
+                        PizzaObj pizza = new PizzaObj();
+
+                        pizza.Name = updatedPizzaObj.Name;
+                        pizza.Price = updatedPizzaObj.Price;
+                        pizza.Quantity = updatedPizzaObj.Quantity;
+                        pizza.PizzaOrderId = updatedPizzaObj.PizzaOrderId;
+
+                        _db.PizzaObj.Add(pizza);
+                    }
+                
             }
 
             _db.SaveChanges();
