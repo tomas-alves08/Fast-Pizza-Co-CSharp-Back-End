@@ -4,10 +4,8 @@ using Fast_C__Pizza_Co_Back_End.Models;
 using Fast_C__Pizza_Co_Back_End.Models.DTO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using System.Text.Json.Serialization;
 
 namespace Fast_C__Pizza_Co_Back_End.Controllers
 {
@@ -96,14 +94,14 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
         }
 
         [HttpDelete("id:int")]
-        public IActionResult DeletePizzaOrder(int id)
+        public async Task<IActionResult> DeletePizzaOrder(int id)
         {
             if(id == 0)
             {
                 return BadRequest();
             }
 
-            var pizzaOrder = _db.PizzaOrders.FirstOrDefault(order => order.Id == id);
+            var pizzaOrder = await _db.PizzaOrders.FirstOrDefaultAsync(order => order.Id == id);
 
             if (pizzaOrder == null)
             {
@@ -111,7 +109,7 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
             }
 
             _db.PizzaOrders.Remove(pizzaOrder);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             return NoContent();
         }
@@ -153,49 +151,21 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 {
                     if (updatedPizzaObj.Id == 0)
                     {
-                        // Create a new PizzaObj if the Id is -1
                         var pizzaObjModel = _mapper.Map<PizzaObj>(updatedPizzaObj);
                         pizzaObjModel.PizzaOrderId = id;
                         _db.PizzaObj.Add(pizzaObjModel);
                     }
                     else if (existingPizzaObj != null)
                     {
-                        // Update existing PizzaObj properties
                         _mapper.Map(updatedPizzaObj, existingPizzaObj);
                         _db.Entry(existingPizzaObj).State = EntityState.Modified;
                     }
                 }
                 else if (existingPizzaObj != null)
                 {
-                    // Remove the PizzaObj if Quantity is 0
                     _db.PizzaObj.Remove(existingPizzaObj);
                 }
             };
-
-
-            /*foreach (var updatedPizzaObj in updateDTO.PizzaArr)
-            {
-                var existingPizzaObj = existingPizzaObjs.FirstOrDefault(pizza => pizza.Id == updatedPizzaObj.Id);
-
-                if (existingPizzaObj != null)
-                {
-                    existingPizzaObj.Name = updatedPizzaObj.Name;
-                    existingPizzaObj.Price = updatedPizzaObj.Price;
-                    existingPizzaObj.Quantity = updatedPizzaObj.Quantity;
-                }
-
-                if (updatedPizzaObj.Quantity > 0 && updatedPizzaObj.Id == -1)
-                {
-                    PizzaObj pizza = new PizzaObj();
-
-                    pizza.Name = updatedPizzaObj.Name;
-                    pizza.Price = updatedPizzaObj.Price;
-                    pizza.Quantity = updatedPizzaObj.Quantity;
-                    pizza.PizzaOrderId = updatedPizzaObj.PizzaOrderId;
-
-                    _db.PizzaObj.Add(pizza);
-                }
-            };*/
 
             await _db.SaveChangesAsync();
 
