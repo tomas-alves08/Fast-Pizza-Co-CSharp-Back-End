@@ -1,5 +1,6 @@
 using Fast_C__Pizza_Co_Back_End;
 using Fast_C__Pizza_Co_Back_End.Data;
+using Fast_C__Pizza_Co_Back_End.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 {
     option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection"));
 });
+
+builder.Services.AddScoped<IPizzaOrderRepository, PizzaOrderRepository>();
 
 builder.Services.AddAutoMapper(typeof(MappingConfig));
 

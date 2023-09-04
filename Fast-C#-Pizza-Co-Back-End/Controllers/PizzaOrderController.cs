@@ -2,6 +2,7 @@
 using Fast_C__Pizza_Co_Back_End.Data;
 using Fast_C__Pizza_Co_Back_End.Models;
 using Fast_C__Pizza_Co_Back_End.Models.DTO;
+using Fast_C__Pizza_Co_Back_End.Repository.IRepository;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -14,20 +15,19 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
     public class PizzaOrderController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
+        private readonly IPizzaOrderRepository _dbPizzaOrder;
         private readonly IMapper _mapper;
-        public PizzaOrderController(ApplicationDbContext db, IMapper mapper)
+        public PizzaOrderController(ApplicationDbContext db,IPizzaOrderRepository dbPizzaOrder, IMapper mapper)
         {
             _db = db;
+            _dbPizzaOrder = dbPizzaOrder;
             _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PizzaOrderDTO>>> GetPizzaOrders() 
         {
-            IEnumerable<PizzaOrder> OrderList = await _db.PizzaOrders
-                                                        .Include(order => order.PizzaArr)
-                                                        .OrderBy(order => order.DeliveryTime)
-                                                        .ToListAsync();
+            IEnumerable<PizzaOrder> OrderList = await _dbPizzaOrder.GetAllAsync();
 
             return Ok(_mapper.Map<IEnumerable<PizzaOrderDTO>>(OrderList));
         }
@@ -42,9 +42,9 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
 
             var pizzaOrder = _db.PizzaOrders
                                     .Include(pizza => pizza.PizzaArr)
-                                    .FirstOrDefault(order=> order.Id == id);
+                                    .FirstOrDefault(order => order.Id == id);
 
-            if(pizzaOrder == null)
+            if (pizzaOrder == null)
             {
                 return NotFound();
             }
@@ -55,12 +55,8 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
         [HttpPost]
         public async Task<ActionResult<PizzaOrderCreateDTO>> CreatePizzaOrder([FromBody] PizzaOrderCreateDTO createDTO)
         {
-         
-
-            Debug.WriteLine(createDTO);
             try
             {
-
             if (createDTO == null)
             {
                 return BadRequest(createDTO);
@@ -80,8 +76,7 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
 
                 var x = JsonConvert.SerializeObject(model);
 
-            _db.PizzaOrders.Add(model);
-            await _db.SaveChangesAsync();
+            await _dbPizzaOrder.CreateAsync(model);
 
             return Ok(createDTO);
 
@@ -101,15 +96,14 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 return BadRequest();
             }
 
-            var pizzaOrder = await _db.PizzaOrders.FirstOrDefaultAsync(order => order.Id == id);
+            var pizzaOrder = await _dbPizzaOrder.GetOneAsync(order => order.Id == id);
 
             if (pizzaOrder == null)
             {
                 return NotFound();
             }
 
-            _db.PizzaOrders.Remove(pizzaOrder);
-            await _db.SaveChangesAsync();
+            await _dbPizzaOrder.RemoveAsync(pizzaOrder);
 
             return NoContent();
         }
@@ -122,14 +116,15 @@ namespace Fast_C__Pizza_Co_Back_End.Controllers
                 return BadRequest();
             }
 
-            var existingPizzaOrder = await _db.PizzaOrders.AsNoTracking().FirstOrDefaultAsync(pizza=> pizza.Id == id);
+            var existingPizzaOrder = await _db.PizzaOrders.AsNoTracking().FirstOrDefaultAsync(pizza => pizza.Id == id);
 
             if (existingPizzaOrder == null)
             {
                 return NotFound();
             }
 
-            _mapper.Map(updateDTO, existingPizzaOrder);
+            var model = _mapper.Map(updateDTO, existingPizzaOrder);
+            _db.Update(model);
 
             var existingPizzaObjs = _db.PizzaObj.Where(pizza => pizza.PizzaOrderId == id).ToList();
 
